@@ -1,10 +1,13 @@
-import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
 
-load_dotenv()
+# BaseSettings is a special Pydantic class that auto-reads from .env when you instantiate it
+# = "" means if the key is missing from .env, it defaults to empty string instead of crashing
 
+class Settings(BaseSettings):
+    gemini_api_key: str = ""
+    database_url: str=""
 
-class Config:
-    DEBUG = os.getenv("DEBUG", "False").lower() == "true"
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
-    DATABASE_URL = os.getenv("DATABASE_URL", "")
+    class Config:
+        env_file=".env"
+
+settings=Settings()

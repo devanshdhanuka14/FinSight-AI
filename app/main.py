@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-from app.config import Config
 
-app = FastAPI(title="FinSight")
-
+app = FastAPI(
+    title="FinSight AI",
+    version="0.10"
+)
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+def health_check():
+    return {"status": "ok", "service": "finsight-ai"}
