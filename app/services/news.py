@@ -45,6 +45,12 @@ def fetch_rss_news(company_name: str) -> list:
 
         title = entry.get("title", "")
 
+        if not title:
+            continue
+
+        if company_name.split()[0].lower() not in title.lower():
+            continue 
+
         
         headlines.append({
             "headline": title,
