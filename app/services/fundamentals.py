@@ -1,6 +1,7 @@
 import yfinance as yf
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
 
 def fetch_yfinance_data(ticker: str):
     yf_ticker = yf.Ticker(f"{ticker}.NS")
@@ -100,6 +101,114 @@ def _get_shareholding(soup):
 
     return results
 
+def compute_indicators(df: pd.DataFrame):
+    df["MA20"] = df["Close"].rolling(20).mean()
+    df["MA50"] = df["Close"].rolling(50).mean()
+
+    # RSI
+    delta = df["Close"].diff()
+    gain = delta.clip(lower=0).rolling(14).mean()
+    loss = -delta.clip(upper=0).rolling(14).mean()
+    rs = gain / loss
+    df["RSI"] = 100 - (100 / (1 + rs))
+
+    # Average volume
+    df["AvgVol20"] = df["Volume"].rolling(20).mean()
+
+    return df
+
+def is_volume_spike(df: pd.DataFrame, threshold: float = 1.5):
+    last = df.iloc[-1]
+    vol = last["Volume"]
+    avg = last["AvgVol20"]
+    if pd.isna(avg) or avg == 0:
+        return False, 0.0
+    ratio = vol / avg
+    spike = ratio >= threshold
+    return spike, round(ratio, 2)
+
+def get_signal(df: pd.DataFrame):
+    last = df.iloc[-1]
+    price = last["Close"]
+    ma20 = last["MA20"]
+    ma50 = last["MA50"]
+    rsi = round(last["RSI"], 1)
+
+    above_ma20 = price > ma20
+    above_ma50 = price > ma50
+
+    # Trend
+    if above_ma20 and above_ma50:
+        trend = "Bullish structure"
+    elif above_ma20 and not above_ma50:
+        trend = "Short-term strength, long-term weak"
+    elif not above_ma20 and above_ma50:
+        trend = "Short-term weakness, long-term hold"
+    else:
+        trend = "Bearish structure"
+
+    # Momentum
+    if rsi > 70:
+        momentum = "overbought — watch for reversal"
+    elif rsi > 55:
+        momentum = "bullish momentum"
+    elif rsi > 45:
+        momentum = "neutral"
+    elif rsi > 30:
+        momentum = "bearish momentum"
+    else:
+        momentum = "oversold — watch for bounce"
+
+    # Confluence
+    if above_ma20 and above_ma50 and rsi > 55 and rsi <= 70:
+        verdict = "STRONG BUY SIGNAL"
+    elif above_ma20 and above_ma50 and rsi > 70:
+        verdict = "BULLISH BUT OVEREXTENDED"
+    elif not above_ma20 and not above_ma50 and rsi < 45 and rsi >= 30:
+        verdict = "STRONG SELL SIGNAL"
+    elif not above_ma20 and not above_ma50 and rsi < 30:
+        verdict = "BEARISH BUT OVERSOLD"
+    elif above_ma20 and above_ma50 and rsi < 45:
+        verdict = "BULLISH STRUCTURE, WEAK MOMENTUM — WAIT"
+    elif not above_ma20 and not above_ma50 and rsi > 55:
+        verdict = "BEARISH STRUCTURE, STRONG MOMENTUM — CONFLICTED"
+    else:
+        verdict = "MIXED SIGNALS"
+
+    # Reasoning
+    ma20_diff = round(((price - ma20) / ma20) * 100, 2)
+    ma50_diff = round(((price - ma50) / ma50) * 100, 2)
+
+    reasoning = (
+        f"Price is {'above' if above_ma20 else 'below'} MA20 by {abs(ma20_diff)}% "
+        f"and {'above' if above_ma50 else 'below'} MA50 by {abs(ma50_diff)}%. "
+        f"RSI at {rsi} indicates {momentum}."
+    )
+
+    return verdict, trend, reasoning
+
+def get_technicals(ticker: str) -> dict:
+    stock = yf.Ticker(f"{ticker}.NS")
+    df = stock.history(period="6mo")
+    
+    if df.empty:
+        return {}
+    
+    df = compute_indicators(df)
+    verdict, trend, reasoning = get_signal(df)
+    spike, ratio = is_volume_spike(df)
+    
+    return {
+        "trend": trend,
+        "verdict": verdict,
+        "reasoning": reasoning,
+        "volume_spike": spike,
+        "volume_ratio": ratio,
+        "rsi": round(df.iloc[-1]["RSI"], 1),
+        "ma20": round(df.iloc[-1]["MA20"], 2),
+        "ma50": round(df.iloc[-1]["MA50"], 2),
+    }
+
 def get_fundamentals(ticker: str):
     ticker = ticker.upper().strip()
     
@@ -110,6 +219,7 @@ def get_fundamentals(ticker: str):
     revenue_growth = _get_growth_from_pl(soup, "Sales")
     profit_growth = _get_growth_from_pl(soup, "Net Profit")
     shareholding= _get_shareholding(soup)
+    technicals = get_technicals(ticker)
     
     return {
         **price_data,
@@ -117,5 +227,6 @@ def get_fundamentals(ticker: str):
         "roe": float(ratios.get("ROE", 0)) or None,
         "revenue_growth": revenue_growth,
         "profit_growth": profit_growth,
-        "shareholding_pattern":shareholding
+        "shareholding_pattern":shareholding,
+        "technicals": technicals
         }
