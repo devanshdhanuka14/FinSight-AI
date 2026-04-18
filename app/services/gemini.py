@@ -1,0 +1,100 @@
+from google import genai
+from app.config import settings
+
+client = genai.Client(api_key=settings.gemini_api_key)
+
+def build_prompt(ticker: str, company_name: str, fundamentals: dict, news: list) -> str:
+    
+    price = fundamentals.get("current_price")
+    change = fundamentals.get("change_pct")
+    pe = fundamentals.get("pe_ratio")
+    roe = fundamentals.get("roe")
+    roce = fundamentals.get("roce")
+    revenue_growth = fundamentals.get("revenue_growth")
+    profit_growth = fundamentals.get("profit_growth")
+    shareholding = fundamentals.get("shareholding_pattern", {})
+    technicals = fundamentals.get("technicals", {})
+    
+    # format news as numbered list
+    news_block = "\n".join(
+        f"{i+1}. [{h['date']}] {h['headline']}"
+        for i, h in enumerate(news)
+    )
+    
+    prompt = f"""
+        You are a senior equity research analyst at a top Indian brokerage firm, specializing in NSE-listed stocks.
+        Your analysis will be read by retail investors in India who want institutional-quality research but cannot afford Bloomberg or a personal advisor.
+        They are trying to decide whether a stock deserves their attention today — not a buy/sell call, but a reasoned, data-backed view.
+        Your verdict must be grounded strictly in the data provided below — do not rely on general knowledge about the company.
+        Be direct, specific, and use the numbers. Vague analysis is useless to the investor reading this.
+        Analyze the following data for {company_name} ({ticker}) and return a structured JSON response.
+
+        --- PRICE ---
+        Current Price: ₹{price}
+        Change: {change}%
+
+        --- TECHNICALS ---
+        Trend: {technicals.get('trend')}
+        Verdict: {technicals.get('verdict')}
+        RSI: {technicals.get('rsi')}
+        Reasoning: {technicals.get('reasoning')}
+
+        --- FUNDAMENTALS ---
+        P/E Ratio: {pe}
+        ROE: {roe}%
+        ROCE: {roce}%
+        Revenue Growth (3yr): {revenue_growth}
+        Profit Growth (3yr): {profit_growth}
+
+        --- SHAREHOLDING TREND ---
+        Promoters: {shareholding.get('Promoters')}
+        FIIs: {shareholding.get('FIIs')}
+        DIIs: {shareholding.get('DIIs')}
+
+        --- NEWS HEADLINES ---
+        {news_block}
+
+        --- OUTPUT INSTRUCTIONS ---
+        Return ONLY a JSON object with exactly these fields:
+        {{
+            "news_sentiment": {{
+                "label": "Bullish/Neutral/Bearish",
+                "reasoning": "2-3 sentences explaining why"
+            }},
+            "key_risks": ["risk 1", "risk 2", "risk 3"],
+            "key_opportunities": ["opportunity 1", "opportunity 2", "opportunity 3"],
+            "analyst_verdict": "150 word analyst verdict here"
+        }}
+
+        Return ONLY the JSON. No explanation, no markdown, no extra text.
+    """
+    return prompt
+
+def get_research(ticker: str) -> dict:
+    from app.services.fundamentals import get_fundamentals
+    from app.services.news import fetch_news
+    import json
+
+    fundamentals = get_fundamentals(ticker)
+    company_name = fundamentals.get("company_name", ticker)
+    news = fetch_news(ticker, company_name)
+    
+    prompt = build_prompt(ticker, company_name, fundamentals, news)
+    
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt
+    )
+    raw = response.text.strip()
+    
+    # Gemini sometimes wraps JSON in ```json ``` even when told not to
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    
+    result = json.loads(raw)
+    result["fundamentals"] = fundamentals
+    result["news"] = news
+    
+    return result

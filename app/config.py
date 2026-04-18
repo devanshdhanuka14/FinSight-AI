@@ -5,9 +5,13 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     gemini_api_key: str = ""
-    database_url: str=""
+    database_url: str = ""
+    debug: bool = False
+    secret_key: str = ""
 
     class Config:
-        env_file=".env"
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore" # extra = "ignore" tells Pydantic to silently ignore any env variables it doesn't recognise. Cleaner than adding every possible field.
 
 settings=Settings()
