@@ -20,6 +20,16 @@ def build_prompt(ticker: str, company_name: str, fundamentals: dict, news: list)
         f"{i+1}. [{h['date']}] {h['headline']}"
         for i, h in enumerate(news)
     )
+
+    nse = fundamentals.get("nse", {})
+    nse_returns = nse.get("returns", {})
+    index_returns = nse.get("index_returns", {})
+    announcements = nse.get("announcements", [])
+
+    announcements_block = "\n".join(
+        f"{i+1}. [{a['date']}] {a['summary']}"
+        for i, a in enumerate(announcements)
+    )
     
     prompt = f"""
         You are a senior equity research analyst at a top Indian brokerage firm, specializing in NSE-listed stocks.
@@ -50,6 +60,20 @@ def build_prompt(ticker: str, company_name: str, fundamentals: dict, news: list)
         Promoters: {shareholding.get('Promoters')}
         FIIs: {shareholding.get('FIIs')}
         DIIs: {shareholding.get('DIIs')}
+
+        --- VALUATION CONTEXT ---
+        Sector: {nse.get('sector')}
+        Sector P/E: {nse.get('sector_pe')} | Stock P/E: {nse.get('symbol_pe')}
+        Annual Volatility: {nse.get('annual_volatility')}%
+        Delivery %: {nse.get('delivery_pct')}% (higher = more conviction, less speculation)
+
+        --- PRICE PERFORMANCE vs {nse.get('index_name', 'NIFTY 50')} ---
+        Stock 1M: {nse_returns.get('one_month')}% | Index 1M: {index_returns.get('one_month')}%
+        Stock 3M: {nse_returns.get('three_month')}% | Index 3M: {index_returns.get('three_month')}%
+        Stock 1Y: {nse_returns.get('one_year')}% | Index 1Y: {index_returns.get('one_year')}%
+
+        --- NSE CORPORATE ANNOUNCEMENTS ---
+        {announcements_block}
 
         --- NEWS HEADLINES ---
         {news_block}

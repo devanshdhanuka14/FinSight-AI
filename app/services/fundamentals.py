@@ -2,6 +2,7 @@ import yfinance as yf
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
+from app.services.nse import fetch_nse_data
 
 def fetch_yfinance_data(ticker: str):
     yf_ticker = yf.Ticker(f"{ticker}.NS")
@@ -220,6 +221,12 @@ def get_fundamentals(ticker: str):
     profit_growth = _get_growth_from_pl(soup, "Net Profit")
     shareholding= _get_shareholding(soup)
     technicals = get_technicals(ticker)
+
+    try:
+        nse_data = fetch_nse_data(ticker)
+    except Exception as e:
+        print(f"NSE fetch failed for {ticker}: {e}")
+        nse_data = {}
     
     return {
         **price_data,
@@ -228,5 +235,6 @@ def get_fundamentals(ticker: str):
         "revenue_growth": revenue_growth,
         "profit_growth": profit_growth,
         "shareholding_pattern":shareholding,
-        "technicals": technicals
+        "technicals": technicals,
+        "nse": nse_data
         }
