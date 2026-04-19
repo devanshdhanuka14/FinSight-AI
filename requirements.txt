@@ -5,3 +5,5 @@ pydantic-settings
 yfinance
 requests
 beautifulsoup4
+sqlalchemy
+psycopg2-binary
