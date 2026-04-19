@@ -36,9 +36,9 @@ def parse_nse_data(raw: dict) -> dict:
     # Extract symbol data
     equity = raw["symbol_data"].get("equityResponse", [])
     symbol = equity[0] if equity else {}
-    sec_info = symbol.get("secInfo", {})
-    trade_info = symbol.get("tradeInfo", {})
-    price_info = symbol.get("priceInfo", {})
+    sec_info = symbol.get("secInfo") or {}
+    trade_info = symbol.get("tradeInfo") or {}
+    price_info = symbol.get("priceInfo") or {}
 
     # Extract returns
     returns = raw["returns_data"][0] if raw["returns_data"] else {}
