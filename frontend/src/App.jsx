@@ -319,11 +319,60 @@ function IndexCard({ idx }) {
 
 // ─── Landing Page ─────────────────────────────────────────────────────────────
 function LandingPage({ onSearch, indices, history }) {
-  const [q, setQ] = useState('')
+  const [q, setQ]                   = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [showDrop, setShowDrop]     = useState(false)
+  const [acLoading, setAcLoading]   = useState(false)
+  const dropRef    = useRef(null)
+  const debounceRef = useRef(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropRef.current && !dropRef.current.contains(e.target)) {
+        setShowDrop(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Debounced autocomplete fetch
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (q.length < 2) {
+      setSuggestions([])
+      setShowDrop(false)
+      setAcLoading(false)
+      return
+    }
+    debounceRef.current = setTimeout(async () => {
+      setAcLoading(true)
+      try {
+        const res  = await fetch(`${API}/search?q=${encodeURIComponent(q)}`)
+        const data = await res.json()
+        setSuggestions(Array.isArray(data) ? data.slice(0, 8) : [])
+        setShowDrop(true)
+      } catch {
+        setSuggestions([])
+      } finally {
+        setAcLoading(false)
+      }
+    }, 300)
+  }, [q])
 
   const submit = (val) => {
     const t = (val || q).trim().toUpperCase()
-    if (t) onSearch(t)
+    if (t) {
+      setShowDrop(false)
+      onSearch(t)
+    }
+  }
+
+  const pickSuggestion = (sym) => {
+    setQ(sym)
+    setShowDrop(false)
+    onSearch(sym)
   }
 
   const features = [
@@ -363,7 +412,7 @@ function LandingPage({ onSearch, indices, history }) {
         )}
 
         {/* Search bar */}
-        <div className="max-w-xl mx-auto mb-6">
+        <div className="max-w-xl mx-auto mb-6 relative" ref={dropRef}>
           <div
             className="flex items-center bg-white border border-[#E5E7EB] rounded-2xl transition-all duration-200"
             style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}
@@ -373,12 +422,20 @@ function LandingPage({ onSearch, indices, history }) {
             <input
               type="text"
               value={q}
-              onChange={e => setQ(e.target.value.toUpperCase())}
+              onChange={e => { setQ(e.target.value.toUpperCase()) }}
               onKeyDown={e => e.key === 'Enter' && submit()}
               placeholder="Enter NSE symbol — INFY, RELIANCE, HDFCBANK"
               autoFocus
               className="flex-1 bg-transparent px-4 py-3.5 text-[#1A1A2E] placeholder-[#9CA3AF] outline-none text-[14px] font-medium"
             />
+            {acLoading && (
+              <div className="pr-3 text-[#9CA3AF]">
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                </svg>
+              </div>
+            )}
             <button
               onClick={() => submit()}
               disabled={!q.trim()}
@@ -388,6 +445,30 @@ function LandingPage({ onSearch, indices, history }) {
               Research
             </button>
           </div>
+
+          {/* Autocomplete dropdown */}
+          {showDrop && (
+            <div
+              className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-[#E5E7EB] rounded-xl overflow-hidden z-50"
+              style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}>
+              {suggestions.length === 0 ? (
+                <div className="px-4 py-3 text-[13px] text-[#9CA3AF]">No matches found</div>
+              ) : (
+                suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    onMouseDown={() => pickSuggestion(s.symbol)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors duration-100"
+                    style={{ background: 'white' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#F8F9FB'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'white'}>
+                    <span className="text-[14px] font-bold text-[#1A1A2E] min-w-[60px]">{s.symbol}</span>
+                    <span className="text-[12px] text-[#6B7280] truncate">{s.name}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Recent searches */}
