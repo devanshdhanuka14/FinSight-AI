@@ -30,6 +30,12 @@ def build_prompt(ticker: str, company_name: str, fundamentals: dict, news: list)
         f"{i+1}. [{a['date']}] {a['summary']}"
         for i, a in enumerate(announcements)
     )
+
+    peers = fundamentals.get("peers", [])
+    peers_block = "\n".join(
+        f"- {p['name']}: P/E={p['pe']}, ROCE={p['roce']}%, Qtr Profit Growth={p['qtr_profit_growth']}%"
+        for p in peers[:5]  # top 5 peers only
+    )
     
     prompt = f"""
         You are a senior equity research analyst at a top Indian brokerage firm, specializing in NSE-listed stocks.
@@ -72,11 +78,17 @@ def build_prompt(ticker: str, company_name: str, fundamentals: dict, news: list)
         Stock 3M: {nse_returns.get('three_month')}% | Index 3M: {index_returns.get('three_month')}%
         Stock 1Y: {nse_returns.get('one_year')}% | Index 1Y: {index_returns.get('one_year')}%
 
-        --- NSE CORPORATE ANNOUNCEMENTS ---
+        --- NSE CORPORATE ANNOUNCEMENTS (Official exchange filings by the company)---
+        These are regulatory disclosures filed directly with NSE. Use these to identify material corporate actions, strategic moves, and management signals.
         {announcements_block}
 
-        --- NEWS HEADLINES ---
+        --- NEWS HEADLINES (From financial news sources)---
+        These are third-party news articles about the company. Use these to gauge market sentiment and recent developments.
         {news_block}
+
+        --- PEER COMPARISON (Screener.in data)---
+        These are the closest sector peers. Use these to assess relative valuation and performance positioning.
+        {peers_block}
 
         --- OUTPUT INSTRUCTIONS ---
         Return ONLY a JSON object with exactly these fields:
