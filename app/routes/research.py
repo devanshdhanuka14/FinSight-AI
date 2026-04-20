@@ -4,6 +4,17 @@ from app.services.cache import get_cached_research, store_research, log_search
 
 router = APIRouter()
 
+import math
+
+def clean_nans(obj):
+    if isinstance(obj, dict):
+        return {k: clean_nans(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_nans(v) for v in obj]
+    elif isinstance(obj, float) and math.isnan(obj):
+        return None
+    return obj
+
 @router.get("/health")
 def health_check():
     return {"status": "ok", "service": "finsight-ai"}
@@ -35,7 +46,8 @@ def research(ticker: str):
     store_research(ticker, result)
     verdict_label = result.get("news_sentiment", {}).get("label", "Unknown")
     log_search(ticker, verdict_label)
-    
+
+    result = clean_nans(result)
     return result
 
 @router.get("/history")
