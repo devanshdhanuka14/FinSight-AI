@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 // ─── API ──────────────────────────────────────────────────────────────────────
-const API = '/api/v1'
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API = `${API_BASE}/api/v1`
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 const fmtNum   = (v, d = 2) => (v == null || isNaN(Number(v)) ? 'N/A' : Number(v).toFixed(d))
