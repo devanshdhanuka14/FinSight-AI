@@ -102,6 +102,52 @@ def _get_shareholding(soup):
 
     return results
 
+def _get_screener_company_id(soup) -> str:
+    company_info = soup.select_one("#company-info")
+    if company_info:
+        return company_info.get("data-warehouse-id")
+    return None
+
+def _parse_screener_number(text: str):
+    if not text:
+        return None
+    import re
+    cleaned = re.sub(r"[^\d.\-]", "", text.strip())
+    return float(cleaned) if cleaned else None
+
+def fetch_peers(soup) -> list:
+    warehouse_id = _get_screener_company_id(soup)
+    if not warehouse_id:
+        return []
+    
+    url = f"https://www.screener.in/api/company/{warehouse_id}/peers/"
+    headers = {"User-Agent": "Mozilla/5.0", "X-Requested-With": "XMLHttpRequest"}
+    
+    resp = requests.get(url, headers=headers, timeout=10)
+    peers_soup = BeautifulSoup(resp.text, "html.parser")
+    
+    peers = []
+    rows = peers_soup.select("tbody tr")
+    for row in rows:
+        cells = row.find_all("td")
+        if len(cells) < 10:
+            continue
+        name_el = cells[1].select_one("a")
+        if not name_el:
+            continue
+        peers.append({
+            "name": name_el.get_text(strip=True),
+            "cmp": _parse_screener_number(cells[2].get_text(strip=True)),
+            "pe": _parse_screener_number(cells[3].get_text(strip=True)),
+            "market_cap": _parse_screener_number(cells[4].get_text(strip=True)),
+            "div_yield": _parse_screener_number(cells[5].get_text(strip=True)),
+            "qtr_profit_growth": _parse_screener_number(cells[7].get_text(strip=True)),
+            "qtr_sales_growth": _parse_screener_number(cells[9].get_text(strip=True)),
+            "roce": _parse_screener_number(cells[10].get_text(strip=True)),
+        })
+    
+    return peers
+
 def compute_indicators(df: pd.DataFrame):
     df["MA20"] = df["Close"].rolling(20).mean()
     df["MA50"] = df["Close"].rolling(50).mean()
@@ -221,6 +267,7 @@ def get_fundamentals(ticker: str):
     profit_growth = _get_growth_from_pl(soup, "Net Profit")
     shareholding= _get_shareholding(soup)
     technicals = get_technicals(ticker)
+    peers = fetch_peers(soup)
 
     try:
         nse_data = fetch_nse_data(ticker)
@@ -236,5 +283,6 @@ def get_fundamentals(ticker: str):
         "profit_growth": profit_growth,
         "shareholding_pattern":shareholding,
         "technicals": technicals,
-        "nse": nse_data
+        "nse": nse_data,
+        "peers": peers
         }
