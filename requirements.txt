@@ -5,5 +5,8 @@ pydantic-settings
 yfinance
 requests
 beautifulsoup4
+feedparser
 sqlalchemy
 psycopg2-binary
+google-genai
+pandas
