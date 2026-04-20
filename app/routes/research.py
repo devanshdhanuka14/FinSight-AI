@@ -77,3 +77,24 @@ def chart(ticker: str):
 def indices():
     from app.services.nse import fetch_market_indices
     return fetch_market_indices()
+
+@router.get("/search")
+def search(q: str):
+    from app.services.nse import get_nse_session
+    session = get_nse_session()
+    resp = session.get(
+        f"https://www.nseindia.com/api/search/autocomplete?q={q}",
+        timeout=10
+    )
+    data = resp.json()
+    
+    # Filter to equity symbols only, return clean list
+    results = []
+    for item in data.get("symbols", []):
+        if item.get("result_sub_type") == "equity":
+            results.append({
+                "symbol": item["symbol"],
+                "name": item["symbol_info"]
+            })
+    
+    return results[:8]
