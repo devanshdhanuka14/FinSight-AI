@@ -42,3 +42,38 @@ def research(ticker: str):
 def history():
     from app.services.cache import get_search_history
     return get_search_history()
+
+@router.get("/chart/{ticker}")
+def chart(ticker: str):
+    import yfinance as yf
+    import math
+    
+    ticker = ticker.upper().strip()
+    df = yf.Ticker(f"{ticker}.NS").history(period="6mo")
+    
+    if df.empty:
+        raise HTTPException(status_code=404, detail=f"No chart data for {ticker}")
+    
+    df["MA20"] = df["Close"].rolling(20).mean()
+    df["MA50"] = df["Close"].rolling(50).mean()
+    
+    def clean(val):
+        if isinstance(val, float) and math.isnan(val):
+            return None
+        return val
+    
+    return {
+        "dates": df.index.strftime("%Y-%m-%d").tolist(),
+        "open": [clean(x) for x in df["Open"].round(2).tolist()],
+        "high": [clean(x) for x in df["High"].round(2).tolist()],
+        "low": [clean(x) for x in df["Low"].round(2).tolist()],
+        "close": [clean(x) for x in df["Close"].round(2).tolist()],
+        "volume": [clean(x) for x in df["Volume"].tolist()],
+        "ma20": [clean(x) for x in df["MA20"].round(2).tolist()],
+        "ma50": [clean(x) for x in df["MA50"].round(2).tolist()],
+    }
+
+@router.get("/indices")
+def indices():
+    from app.services.nse import fetch_market_indices
+    return fetch_market_indices()
