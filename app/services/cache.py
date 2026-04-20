@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.database import SessionLocal, ResearchCache, SearchHistory
 import uuid
 
-CACHE_TTL_HOURS = 1
+CACHE_TTL_HOURS = 24
 
 def get_cached_research(ticker: str):
     db = SessionLocal()

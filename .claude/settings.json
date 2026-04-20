@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/devanshdhanuka/**)",
+      "Read(//Users/devanshdhanuka/.local/share/**)",
+      "Read(//Applications/**)",
+      "Bash(/bin/zsh -l -c 'which node && node --version && which npm && npm --version')",
+      "Bash(/bin/zsh -l -c 'echo $PATH')",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//opt/miniconda3/bin/**)",
+      "Bash(/opt/homebrew/bin/brew list *)",
+      "Bash(/opt/homebrew/bin/brew install *)",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "Bash(/opt/homebrew/bin/npm --version)",
+      "Bash(/opt/homebrew/bin/npm install *)",
+      "Bash(/opt/homebrew/bin/npm run *)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s http://localhost:8000/api/v1/health)",
+      "Bash(curl -s http://localhost:3000/api/v1/indices)"
+    ]
+  }
+}
