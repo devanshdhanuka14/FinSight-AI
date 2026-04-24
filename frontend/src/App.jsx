@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -706,7 +707,7 @@ function SentimentCard({ sentiment }) {
   )
 }
 
-// ─── Research Page ────────────────────────────────────────────────────────────
+// ─── Research Page ──────────────────────────────────────────────────────────���─
 function ResearchPage({ data, ticker, onBack }) {
   const f   = data.fundamentals || {}
   const nse = f.nse             || {}
@@ -1061,6 +1062,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F0F2F5] text-[#1A1A2E] font-sans">
+      <Analytics />
       <Navbar onLogoClick={handleBack} />
 
       {loading && <LoadingOverlay ticker={ticker} message={loadMsg} />}
