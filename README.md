@@ -540,7 +540,7 @@ Supabase pauses inactive free projects, Render's free tier sleeps after inactivi
 B.Tech Computer Engineering, DJ Sanghvi College of Engineering, Mumbai
 
 - GitHub: [@devanshdhanuka14](https://github.com/devanshdhanuka14)
-- LinkedIn: (https://www.linkedin.com/in/devanshdhanuka/)
+- LinkedIn: https://www.linkedin.com/in/devanshdhanuka/
 
 Feedback, issues and pull requests are welcome.
 
