@@ -29,7 +29,6 @@
 - [Deployment](#deployment)
 - [Engineering Challenges & How They Were Solved](#engineering-challenges--how-they-were-solved)
 - [Known Limitations](#known-limitations)
-- [Roadmap](#roadmap)
 - [Part of a Fintech Portfolio](#part-of-a-fintech-portfolio)
 - [Author](#author)
 
@@ -518,19 +517,6 @@ Supabase pauses inactive free projects, Render's free tier sleeps after inactivi
 - **Gemini quotas.** Free-tier rate limits can cause occasional `429` or `503` errors on uncached searches.
 - **No strict response schemas.** Responses are plain dicts rather than validated Pydantic models.
 - **LLM output is not advice.** The verdict is only as good as the data supplied and can still be wrong.
-
----
-
-## Roadmap
-
-- [ ] **Stock comparison mode** for 2 to 3 tickers side by side
-- [ ] **Concurrent data fetching** with `asyncio.gather` to cut uncached latency
-- [ ] **Pydantic response models** for strict API contracts
-- [ ] **Graceful 404s** for delisted or unknown symbols instead of 500s
-- [ ] **Full announcement context** by extracting text from material NSE filing PDFs
-- [ ] **Server-side PDF generation** for a consistent, branded research note
-- [ ] **Rate limiting** and API key protection on the public backend
-- [ ] **Automated tests** for scrapers and parsers to catch upstream format changes early
 
 ---
 
